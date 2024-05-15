@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { AppContext } from '../context/App_Context';
+import { AppContext } from '../context/App_context'; 
 import { ToastContainer, toast, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaHeart, FaRegComments, FaEdit } from 'react-icons/fa';
