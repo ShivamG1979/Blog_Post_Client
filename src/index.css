@@ -1,0 +1,27 @@
+body{
+  background-color: black;
+  color: wheat;
+}
+.nav_bar{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: blue;
+  padding: 10px;
+  position:sticky;
+  top: 0;
+  z-index: 1;
+}
+.right{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap:1rem;
+}
+.left_brand{
+  text-decoration: none ;
+  color: white;
+}
+.img img{
+  width: 250px;
+}
