@@ -12,7 +12,7 @@ const App_State = (props) => {
  
  
 
-  const url = "http://localhost:3000/api";
+  const url = "https://blog-post-api-c28n.onrender.com/api";
   useEffect(() => {
     const fetchBlog = async () => {
       const api = await axios.get(`${url}/posts`, { 
