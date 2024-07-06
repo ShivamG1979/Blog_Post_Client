@@ -9,8 +9,8 @@ const Post = () => {
   const [likedPosts, setLikedPosts] = useState([]);
   const [editing, setEditing] = useState(false);
   const [editedPost, setEditedPost] = useState({});
-  const [commentInput, setCommentInput] = useState("");
-  const [showCommentInput, setShowCommentInput] = useState(false); 
+  const [commentInputs, setCommentInputs] = useState({}); // State to store comment inputs for each post
+  const [showCommentInput, setShowCommentInput] = useState({}); // State to show comment input for each post
 
   const handleEdit = (post) => {
     setEditedPost({ ...post }); 
@@ -80,6 +80,23 @@ const Post = () => {
   };
 
   const handleComment = async (postId) => {
+    const commentInput = commentInputs[postId] || "";
+    
+    if (!commentInput.trim()) {
+      toast.warning("Comment cannot be empty", {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce,
+      });
+      return;
+    }
+
     try {
       const res = await data.handleComment(postId, commentInput);
       console.log('comment added', res);
@@ -96,7 +113,7 @@ const Post = () => {
         transition: Bounce,
       });
 
-      setCommentInput("");
+      setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
       data.setReload(!data.reload);
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -175,18 +192,18 @@ const Post = () => {
                             </button>
                             <button
                               className="btn btn-light mx-1"
-                              onClick={() => setShowCommentInput(!showCommentInput)}
+                              onClick={() => setShowCommentInput((prev) => ({ ...prev, [d._id]: !prev[d._id] }))}
                             >
                               <FaRegComments /> Comment
                             </button>
                           </>
                         )}
-                        {showCommentInput && (
+                        {showCommentInput[d._id] && (
                           <div>
                             <input
                               type="text"
-                              value={commentInput}
-                              onChange={(e) => setCommentInput(e.target.value)}
+                              value={commentInputs[d._id] || ""}
+                              onChange={(e) => setCommentInputs({ ...commentInputs, [d._id]: e.target.value })}
                               placeholder="Add a comment..."
                               className="form-control mt-2"
                             />
@@ -194,7 +211,7 @@ const Post = () => {
                               className="btn btn-info mt-2"
                               onClick={() => {
                                 handleComment(d._id);
-                                setShowCommentInput(false);
+                                setShowCommentInput((prev) => ({ ...prev, [d._id]: false }));
                               }}
                             >
                               Submit
