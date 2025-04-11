@@ -32,6 +32,29 @@ const Navbar = () => {
     navigate("/");
   };
   
+  // Handle Posts link click
+  const handlePostsClick = (e) => {
+    closeNavMenu();
+    
+    if (!data.isAuthenticated) {
+      e.preventDefault();
+      // Navigate to home with a query parameter to show random posts view
+      navigate("/?view=random-posts");
+      
+      // Show a toast notification
+      toast.info("Please log in to see all posts", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
+    }
+  };
+  
   // Check if a link is active
   const isActive = (path) => {
     return location.pathname === path ? "active" : "";
@@ -70,13 +93,23 @@ const Navbar = () => {
               </Link>
             </li>
             <li className="nav-item">
-              <Link 
-                to={'/posts'} 
-                className={`nav-link px-3 py-2 ${isActive('/posts')}`}
-                onClick={closeNavMenu}
-              >
-                Posts
-              </Link>
+              {data.isAuthenticated ? (
+                <Link 
+                  to={'/posts'} 
+                  className={`nav-link px-3 py-2 ${isActive('/posts')}`}
+                  onClick={closeNavMenu}
+                >
+                  Posts
+                </Link>
+              ) : (
+                <a 
+                  href="#" 
+                  className={`nav-link px-3 py-2 ${isActive('/posts')}`}
+                  onClick={handlePostsClick}
+                >
+                  Posts
+                </a>
+              )}
             </li>
 
             {data.isAuthenticated ? (
