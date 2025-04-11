@@ -9,33 +9,49 @@ const App_State = (props) => {
   const [posts, setPosts] = useState([]);
   const [reload, setReload] = useState(false);
   const [comments, setComments] = useState({});
- 
- 
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
+  
+
+  // const url = "http://localhost:3000/api";
   const url = "https://blog-post-api-c28n.onrender.com/api";
+  
   useEffect(() => {
+    setIsLoading(true);
+    
     const fetchBlog = async () => {
-      const api = await axios.get(`${url}/posts`, { 
-        headers: {
-          "Content-Type": "application/json",
-        },
-        withCredentials: true,
-      });
-      console.log(api.data.posts);
-      setPosts(api.data.posts)
+      try {
+        const api = await axios.get(`${url}/posts`, { 
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        });
+        console.log(api.data.posts);
+        setPosts(api.data.posts);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
+    
     fetchBlog();
 
     const jwtToken = window.localStorage.getItem("token");
-    // console.log("jwttoken",jwtToken);
-    setToken(jwtToken);
+setToken(jwtToken);
 
-    if (token) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-  }, [token,reload]);
+if (jwtToken) {
+  setIsAuthenticated(true);
+  getCurrentUser(); // <-- ✅ fetch user
+} else {
+  setIsAuthenticated(false);
+  setUser(null); // <-- reset user if token is gone
+}
+
+  }, [token, reload]);
+  
   // Login
   const login = async (email, password) => {
     try {
@@ -48,32 +64,34 @@ const App_State = (props) => {
         {
           headers: {
             "Content-Type": "application/json"
-            
           },
           withCredentials: true,
         }
       );
-      // return api.data;
-      console.log(api.data);
 
-      // setting to local storage
-      window.localStorage.setItem(`token`, api.data.token);
-      setToken(api.data.token);
-    return api.data;
-
-    } catch (error) {
+      // Only set token if login was successful
+      if (api.data.token) {
+        window.localStorage.setItem(`token`, api.data.token);
+        setToken(api.data.token);
+        setIsAuthenticated(true);
+      }
+      
+      return api.data;
+    } catch (error) { 
       if (error.response) {
         console.log("Error response status:", error.response.status);
-        console.log("Response data:", error.response.data);
-        return error.response.data
+        console.log("Response data:", error.response.data); 
+        return error.response.data;
       } else if (error.request) {
         console.log("No response received");
+        return { message: "No response from server. Please try again." };
       } else {
         console.error("Error message:", error.message);
+        return { message: "An error occurred. Please try again." };
       }
     }
   };
-  //Register 
+  //Register
   const Register = async (name, email, password) => {
     try {
       const api = await axios.post(
@@ -91,65 +109,94 @@ const App_State = (props) => {
         }
       );
   
-     
-      if (api.status === 200) {
-        console.log("Registration successful:", api.data);
-        window.localStorage.setItem("token", api.data.token);
-        setToken(api.data.token);
-        return api.data;
-      } else {
-        console.error("Registration failed. Server response:", api.data);
-        return api.data;
+      const res = api.data;
+  
+      // Check for status 201 or 200 and the success message
+      if ((api.status === 201 || api.status === 200) && 
+          res.message === "User Register Successfully!") {
+        console.log("✅ Registration successful:", res);
+  
+        if (res.token) {
+          window.localStorage.setItem("token", res.token);
+          setToken(res.token);
+          setIsAuthenticated(true);
+        }
+  
+        return res; // success
       }
+  
+      console.warn("⚠️ Registration response was not as expected:", res);
+      return res;
+  
     } catch (error) {
-      console.error("Error during registration:", error);
+      console.error("❌ Error during registration:", error);
+      if (error.response) {
+        return error.response.data;
+      }
       return { error: "An error occurred during registration." };
     }
   };
   
-  
-// Logout
+  // Logout - Fixed the function
   const logOut = () => {
     window.localStorage.removeItem("token");
     setToken("");
-    isAuthenticated(false);
+    setIsAuthenticated(false); // Fixed: was calling isAuthenticated as a function
   };
 
-  const addPost = async( title,description,imgUrl)=>{
-    const api = await axios.post(`${url}/addpost`, {
-      title,
-      description,
-      imgUrl
-    },{
-      headers: {
-        "Content-Type": "application/json",
-        "Auth":token
-      },
-      withCredentials: true,
-    });
-    console.log(api);
-    return api.data;
+  const addPost = async (title, description, imgUrl) => {
+    try {
+      const api = await axios.post(`${url}/addpost`, {
+        title,
+        description,
+        imgUrl
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          "Auth": token
+        },
+        withCredentials: true,
+      });
+      
+      console.log(api);
+      return api.data;
+    } catch (error) {
+      console.error("Error adding post:", error);
+      if (error.response) {
+        return error.response.data;
+      }
+      return { error: "An error occurred while adding the post." };
+    }
   };
-  // Delete
-  const deletePost= async (id)=>{
-
-    const api = await axios.delete(`${url}/post/${id}`,
-     {
-      headers: {
-        "Content-Type": "application/json",
-        "Auth":token
-      },
-      withCredentials: true,
-    });
-    console.log(api);
-    return api.data;
-  }
-  //Like Post
-  const likePostById = async (Id) => {
+  
+  // Delete - Improved error handling
+  const deletePost = async (id) => {
+    try {
+      const api = await axios.delete(`${url}/post/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          "Auth": token
+        },
+        withCredentials: true,
+      });
+      
+      console.log(api);
+      return api.data;
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      if (error.response) {
+        return error.response.data;
+      }
+      return { error: "An error occurred while deleting the post." };
+    }
+  };
+  
+  //Like Post - Improved error handling
+  const likePostById = async (id) => {
     try {
       const api = await axios.post(
-        `${url}/post/like/${Id}`,
-        { id:Id }, 
+        `${url}/post/like/${id}`,
+        { id }, 
         {
           headers: {
             "Content-Type": "application/json",
@@ -163,10 +210,37 @@ const App_State = (props) => {
       return api.data;
     } catch (error) {
       console.error("Error liking post:", error);
+      if (error.response) {
+        return error.response.data;
+      }
       return { error: "An error occurred while liking the post." };
     }
   };
-  //Edit post 
+  
+  const unlikePostById = async (id) => {
+    try {
+      const api = await axios.delete(
+        `${url}/post/like/${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Auth": token,
+          },
+          withCredentials: true,
+        }
+      );
+    
+      console.log(api.data);
+      return api.data;
+    } catch (error) {
+      console.error("Error unliking post:", error);
+      if (error.response) {
+        return error.response.data;
+      }
+      return { error: "An error occurred while unliking the post." };
+    }
+  };
+  //Edit post - Improved error handling
   const editPost = async (id, updatedPostData) => {
     try {
       const api = await axios.put(`${url}/post/${id}`, updatedPostData, {
@@ -176,17 +250,21 @@ const App_State = (props) => {
         },
         withCredentials: true,
       });
+      
       console.log(api);
       return api.data;
     } catch (error) {
       console.error("Error editing post:", error);
+      if (error.response) {
+        return error.response.data;
+      }
       return { error: "An error occurred while editing the post." };
     }
   };
-  //Comments
+  
+  //Comments - Improved error handling
   const handleComment = async (postId, comment) => {
     try {
-      // Submit comment logic
       const api = await axios.post(
         `${url}/post/comment/${postId}`,
         { comment },
@@ -198,19 +276,46 @@ const App_State = (props) => {
           withCredentials: true,
         }
       );
+      
       console.log(api.data);
-      // Update comments state if necessary
+      // Update comments state
       setComments((prevComments) => ({
         ...prevComments,
         [postId]: [...(prevComments[postId] || []), comment],
       }));
+      
       return api.data;
     } catch (error) {
       console.error("Error adding comment:", error);
+      if (error.response) {
+        return error.response.data;
+      }
       return { error: "An error occurred while adding the comment." };
     }
   };
  
+  //get user
+  const getCurrentUser = async () => {
+    try {
+      const api = await axios.get(`${url}/me`, {
+        headers: {
+          "Content-Type": "application/json",
+          "Auth": token,
+        },
+        withCredentials: true,
+      });
+      console.log("User fetched:", api.data.user);
+      setUser(api.data.user);
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      setUser(null);
+    }
+  };
+ 
+
+
+
+
   return (
     <AppContext.Provider
       value={{
@@ -230,14 +335,24 @@ const App_State = (props) => {
         deletePost,
         reload,
         setReload,
+        likedPosts: [],
         likePostById,
         editPost,
         comments,
         handleComment,
+        isLoading,
+        unlikePostById,
+        user,
+setUser,
+getCurrentUser,
+
+
+    
       }}
     >
       {props.children}
     </AppContext.Provider>
   );
 };
+
 export default App_State;
