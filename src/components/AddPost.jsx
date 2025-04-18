@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/App_context';
-import { toast, Bounce } from 'react-toastify';
+import { toast, Bounce, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 
 const AddPost = () => {
@@ -55,33 +56,43 @@ const AddPost = () => {
           theme: "dark",
           transition: Bounce,
         });
+        setIsSubmitting(false);
       } else {
+        // Show success toast and navigate without using setReload
         toast.success(res?.message || "Post created successfully!", {
           position: "top-right",
           autoClose: 2000,
           theme: "dark",
           transition: Bounce,
+          onClose: () => {
+            // Only navigate after toast closes
+            navigate('/posts');
+          }
         });
-
-        data.setReload(!data.reload);
-        setTimeout(() => {
-          navigate('/posts');
-        }, 2000);
+        
+        // If you still need to trigger a reload effect in the parent component,
+        // check if reload is a function in the context and call it safely
+        if (data.reload && typeof data.reload === 'function') {
+          data.reload();
+        }
       }
     } catch (error) {
+      console.error("Error creating post:", error);
       toast.error("Failed to create post. Please try again.", {
         position: "top-right",
         autoClose: 3000,
         theme: "dark",
         transition: Bounce,
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="bg-light min-vh-100 py-5">
+      {/* Toast Container */}
+      <ToastContainer />
+      
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-lg-10">

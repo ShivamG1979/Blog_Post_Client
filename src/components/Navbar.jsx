@@ -93,6 +93,15 @@ const Navbar = () => {
               </Link>
             </li>
             <li className="nav-item">
+  <Link 
+    to={'/about'} 
+    className={`nav-link px-3 py-2 ${isActive('/about')}`}
+    onClick={closeNavMenu}
+  >
+    About
+  </Link>
+</li>
+            <li className="nav-item">
               {data.isAuthenticated ? (
                 <Link 
                   to={'/posts'} 
